@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodHub MICOST | Good Food Good Mood</title>
+  <link rel="icon" href="./assets/img/micostskills-logo.png">
+  <link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="#home" aria-label="FoodHub MICOST home">
+      <img src="./assets/img/micostskills-logo.png" alt="MICOSTSkills">
+      <span>FoodHub</span>
+    </a>
+
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open menu">Menu</button>
+
+    <nav id="site-nav">
+      <a href="#home">Home</a>
+      <a href="#menu">Menu</a>
+      <a href="#deals">Deals</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+      <a href="#admin">Admin</a>
+    </nav>
+
+    <button class="cart-button" id="cart-button" type="button" aria-label="Open cart">
+      Cart <span id="cart-count">0</span>
+    </button>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-copy">
+        <h1>Good Food<br>Good Mood</h1>
+        <p>Platform makanan MICOST untuk pelajar mencari menu, melihat promosi dan membuat tempahan dengan mudah.</p>
+        <div class="hero-actions">
+          <a class="btn light" href="#deals">View Deals</a>
+          <a class="btn light" href="#menu">Explore Menu</a>
+        </div>
+      </div>
+      <div class="hero-plate" aria-label="Burger combo">
+        <img src="https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?auto=format&fit=crop&w=900&q=80" alt="Burger combo with fries">
+      </div>
+    </section>
+
+    <section class="section" id="menu">
+      <div class="section-heading">
+        <h2>Our <span>Menu</span></h2>
+        <p>Discover our delicious selection of freshly prepared meals.</p>
+      </div>
+      <div class="toolbar">
+        <input id="search-food" type="search" placeholder="Cari makanan...">
+        <div class="tabs" id="category-tabs"></div>
+      </div>
+      <div class="food-grid" id="menu-grid"></div>
+      <div class="center">
+        <button class="btn" id="show-all" type="button">See All</button>
+      </div>
+    </section>
+
+    <section class="section why" id="about">
+      <div class="section-heading">
+        <h2>Why Choose <span>FoodHub?</span></h2>
+        <p>FoodHub membantu urusan jual beli makanan pelajar MICOST jadi lebih tersusun.</p>
+      </div>
+      <div class="features">
+        <article>
+          <div class="feature-icon">Chef</div>
+          <h3>Student Sellers</h3>
+          <p>Pelajar boleh mempromosikan makanan mereka kepada komuniti kampus.</p>
+        </article>
+        <article>
+          <div class="feature-icon">Fast</div>
+          <h3>Fast Order</h3>
+          <p>Pembeli boleh tambah ke cart dan terus hubungi penjual melalui WhatsApp.</p>
+        </article>
+        <article>
+          <div class="feature-icon">Best</div>
+          <h3>Easy Search</h3>
+          <p>Menu disusun mengikut kategori supaya makanan lebih mudah dicari.</p>
+        </article>
+        <article>
+          <div class="feature-icon">Care</div>
+          <h3>Campus Focus</h3>
+          <p>Dibina khas untuk kegunaan pelajar MICOST, ringkas dan senang digunakan.</p>
+        </article>
+      </div>
+
+      <article class="story">
+        <h3>Our Story</h3>
+        <p>FoodHub MICOST dibangunkan bagi menyelesaikan masalah pelajar yang sukar mencari penjual makanan di kampus. Laman ini menjadi tempat berpusat untuk melihat menu, promosi dan maklumat penjual.</p>
+        <p>Dengan reka bentuk yang mudah, pelajar boleh mencari makanan, membuat tempahan dan berhubung terus dengan penjual tanpa perlu menggunakan sistem yang rumit.</p>
+        <strong>FoodHub MICOST - Mudah, Cepat dan Sistematik</strong>
+      </article>
+    </section>
+
+    <section class="section" id="deals">
+      <div class="section-heading">
+        <h2>Special <span>Deals</span></h2>
+        <p>Grab our combo deals and save more on your favourite meals.</p>
+      </div>
+      <div class="deal-grid" id="deal-grid"></div>
+    </section>
+
+    <section class="section seller-section">
+      <div class="section-heading">
+        <h2>Seller <span>Form</span></h2>
+      </div>
+      <form class="seller-form" id="seller-form">
+        <input name="name" placeholder="Nama makanan" required>
+        <select name="category" required>
+          <option value="Nasi">Nasi</option>
+          <option value="Burger">Burger</option>
+          <option value="Pasta">Pasta</option>
+          <option value="Minuman">Minuman</option>
+          <option value="Kuih">Kuih</option>
+          <option value="Snack">Snack</option>
+        </select>
+        <input name="price" type="number" min="1" step="0.50" placeholder="Harga RM" required>
+        <input name="sellerPhone" type="tel" placeholder="No WhatsApp seller" required>
+        <input name="image" type="file" accept="image/*" aria-label="Upload gambar makanan">
+        <textarea name="description" placeholder="Penerangan ringkas makanan"></textarea>
+        <button class="btn" type="submit">Add Food</button>
+      </form>
+      <p class="form-note" id="form-note">Data contoh disimpan dalam browser menggunakan localStorage.</p>
+    </section>
+
+    <section class="section contact" id="contact">
+      <div class="section-heading">
+        <h2>Get in <span>Touch</span></h2>
+        <p>Have questions or special requests? We'd love to hear from you.</p>
+      </div>
+      <div class="contact-grid">
+        <article>
+          <div class="feature-icon">Phone</div>
+          <h3>Phone</h3>
+          <p><a href="tel:+60176354253">+60 17-635 4253</a></p>
+        </article>
+        <article>
+          <div class="feature-icon">Email</div>
+          <h3>Email</h3>
+          <p><a href="mailto:foodhubmicost@gmail.com">foodhubmicost@gmail.com</a></p>
+        </article>
+        <article>
+          <div class="feature-icon">Place</div>
+          <h3>Address</h3>
+          <p>Melaka International College of Science and Technology</p>
+        </article>
+        <article>
+          <div class="feature-icon">Hours</div>
+          <h3>Hours</h3>
+          <p>Mon-Fri: 8:00 AM - 5:00 PM</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section admin-section" id="admin">
+      <div class="section-heading">
+        <h2>Admin <span>Login</span></h2>
+      </div>
+      <form class="admin-login" id="admin-login">
+        <input name="username" placeholder="Admin username" required>
+        <input name="password" type="password" placeholder="Admin password" required>
+        <button class="btn" type="submit">Login Admin</button>
+        <p id="admin-message"></p>
+      </form>
+      <div class="admin-dashboard hidden" id="admin-dashboard">
+        <div class="admin-toolbar">
+          <h3>Manage Food Menu</h3>
+          <button id="admin-logout" type="button">Logout</button>
+        </div>
+        <div class="admin-summary" id="admin-summary"></div>
+        <div class="admin-list" id="admin-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="cart-panel" id="cart-panel" aria-label="Cart">
+    <div class="cart-head">
+      <h2>Your Cart</h2>
+      <button id="close-cart" type="button" aria-label="Close cart">Close</button>
+    </div>
+    <div id="cart-items"></div>
+    <div class="cart-total">
+      <span>Total</span>
+      <strong id="cart-total">RM0.00</strong>
+    </div>
+    <a class="btn checkout" id="checkout-link" target="_blank" href="https://wa.me/60176354253">Order via WhatsApp</a>
+  </aside>
+
+  <footer class="footer">
+    <div>
+      <div class="footer-brand">
+        <img src="./assets/img/micostskills-logo.png" alt="MICOSTSkills">
+        <strong>FoodHub</strong>
+      </div>
+      <p>Serving campus food with passion and convenience. Experience the FoodHub MICOST difference today.</p>
+    </div>
+    <div>
+      <h3>Quick Links</h3>
+      <a href="#menu">Menu</a>
+      <a href="#deals">Deals</a>
+      <a href="#about">About Us</a>
+      <a href="#contact">Contact</a>
+      <a href="#admin">Admin</a>
+    </div>
+    <div>
+      <h3>Follow Us</h3>
+      <div class="socials">
+        <a href="https://facebook.com" target="_blank">f</a>
+        <a href="https://wa.me/60176354253" target="_blank">wa</a>
+        <a href="mailto:foodhubmicost@gmail.com">@</a>
+      </div>
+    </div>
+    <p class="copyright">© 2026 FoodHub MICOST. All rights reserved.</p>
+  </footer>
+
+  <a class="chat" href="https://wa.me/60176354253?text=Saya%20berminat%20dengan%20FoodHub%20MICOST" target="_blank">Chat</a>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>
