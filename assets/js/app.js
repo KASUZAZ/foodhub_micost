@@ -22,6 +22,17 @@ const nav = document.querySelector('#site-nav');
 const menuToggle = document.querySelector('#menu-toggle');
 
 const categories = ['All', 'Burger', 'Nasi', 'Pasta', 'Minuman', 'Kuih', 'Snack'];
+const supabaseConfig = window.FOODHUB_SUPABASE || {};
+const isSupabaseReady = Boolean(
+  supabaseConfig.url
+  && supabaseConfig.anonKey
+  && window.supabase
+);
+const supabaseClient = isSupabaseReady
+  ? window.supabase.createClient(supabaseConfig.url, supabaseConfig.anonKey)
+  : null;
+const supabaseTable = supabaseConfig.tableName || 'foods';
+const supabaseStorageBucket = supabaseConfig.storageBucket || 'food-images';
 const adminStateKey = 'foodhub_admin_state';
 const adminSessionKey = 'foodhub_admin_logged_in';
 const adminUsername = 'admin';
@@ -135,14 +146,60 @@ const deals = [
 ];
 
 let adminState = JSON.parse(localStorage.getItem(adminStateKey) || '{}');
-let foods = loadFoods();
+let foods = [];
 let selectedCategory = 'All';
 let visibleLimit = 8;
 let cart = JSON.parse(localStorage.getItem('foodhub_cart') || '[]');
 
-function loadFoods() {
+async function loadFoods() {
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from(supabaseTable)
+        .select('*')
+        .eq('deleted', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []).map(normalizeFoodFromDatabase);
+    } catch (error) {
+      console.warn('Supabase menu load failed. Falling back to localStorage.', error);
+      formNote.textContent = 'Supabase belum berjaya dibaca. Sementara itu data demo digunakan.';
+    }
+  }
+
   const saved = JSON.parse(localStorage.getItem('foodhub_foods') || '[]');
   return [...saved, ...defaultFoods].map(applyAdminState).filter((food) => !food.deleted);
+}
+
+function normalizeFoodFromDatabase(food) {
+  return {
+    id: food.id,
+    name: food.name,
+    category: food.category,
+    price: Number(food.price),
+    description: food.description || '',
+    image: food.image || 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80',
+    badge: food.badge || 'SELLER',
+    sellerPhone: food.seller_phone || food.sellerPhone || '60176354253',
+    status: food.status || 'available',
+    deleted: Boolean(food.deleted)
+  };
+}
+
+function foodToDatabase(food) {
+  return {
+    id: food.id,
+    name: food.name,
+    category: food.category,
+    price: food.price,
+    description: food.description,
+    image: food.image,
+    badge: food.badge,
+    seller_phone: food.sellerPhone,
+    status: food.status || 'available',
+    deleted: Boolean(food.deleted)
+  };
 }
 
 function applyAdminState(food) {
@@ -323,13 +380,29 @@ function logoutAdmin() {
   renderAdminPanel();
 }
 
-function refreshFoodViews() {
-  foods = loadFoods();
+async function refreshFoodViews() {
+  foods = await loadFoods();
   renderMenu();
   renderAdminPanel();
 }
 
-function updateFoodStatus(id, status) {
+async function updateFoodStatus(id, status) {
+  if (supabaseClient) {
+    const { error } = await supabaseClient
+      .from(supabaseTable)
+      .update({ status, deleted: false })
+      .eq('id', id);
+
+    if (error) {
+      alert('Status gagal dikemaskini dalam Supabase.');
+      console.error(error);
+      return;
+    }
+
+    await refreshFoodViews();
+    return;
+  }
+
   adminState[id] = {
     ...(adminState[id] || {}),
     status,
@@ -339,8 +412,28 @@ function updateFoodStatus(id, status) {
   refreshFoodViews();
 }
 
-function deleteFood(id) {
+async function deleteFood(id) {
   if (!confirm('Delete makanan ini daripada menu?')) return;
+
+  if (supabaseClient) {
+    const { error } = await supabaseClient
+      .from(supabaseTable)
+      .update({ deleted: true })
+      .eq('id', id);
+
+    if (error) {
+      alert('Makanan gagal dipadam dalam Supabase.');
+      console.error(error);
+      return;
+    }
+
+    cart = cart.filter((item) => item.id !== id);
+    saveCart();
+    await refreshFoodViews();
+    renderCart();
+    return;
+  }
+
   adminState[id] = {
     ...(adminState[id] || {}),
     deleted: true
@@ -479,6 +572,31 @@ function resizeImage(file) {
   });
 }
 
+async function getUploadedFoodImage(file) {
+  if (!file || !file.type.startsWith('image/')) return '';
+  if (!supabaseClient) return resizeImage(file);
+
+  const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `foods/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const { error } = await supabaseClient.storage
+    .from(supabaseStorageBucket)
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) {
+    console.warn('Supabase image upload failed. Saving resized image data instead.', error);
+    return resizeImage(file);
+  }
+
+  const { data } = supabaseClient.storage
+    .from(supabaseStorageBucket)
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
+
 async function addSellerFood(event) {
   event.preventDefault();
   const formElement = event.currentTarget;
@@ -488,7 +606,7 @@ async function addSellerFood(event) {
   const price = Number(form.get('price'));
   const sellerPhone = whatsappNumber(form.get('sellerPhone'));
   const description = form.get('description').trim() || 'Menu baru daripada penjual MICOST.';
-  const uploadedImage = await resizeImage(form.get('image'));
+  const uploadedImage = await getUploadedFoodImage(form.get('image'));
 
   const newFood = {
     id: `seller-${Date.now()}`,
@@ -498,21 +616,37 @@ async function addSellerFood(event) {
     description,
     image: uploadedImage || 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80',
     badge: 'SELLER',
-    sellerPhone
+    sellerPhone,
+    status: 'available',
+    deleted: false
   };
 
-  const saved = JSON.parse(localStorage.getItem('foodhub_foods') || '[]');
-  saved.unshift(newFood);
-  localStorage.setItem('foodhub_foods', JSON.stringify(saved));
+  if (supabaseClient) {
+    const { error } = await supabaseClient
+      .from(supabaseTable)
+      .insert(foodToDatabase(newFood));
 
-  foods = loadFoods();
+    if (error) {
+      formNote.textContent = 'Menu gagal disimpan ke Supabase. Sila semak table/policy.';
+      console.error(error);
+      return;
+    }
+  } else {
+    const saved = JSON.parse(localStorage.getItem('foodhub_foods') || '[]');
+    saved.unshift(newFood);
+    localStorage.setItem('foodhub_foods', JSON.stringify(saved));
+  }
+
+  foods = await loadFoods();
   selectedCategory = category;
   visibleLimit = 8;
   renderTabs();
   renderMenu();
   renderAdminPanel();
   formElement.reset();
-  formNote.textContent = `${name} berjaya ditambah dalam menu demo.`;
+  formNote.textContent = supabaseClient
+    ? `${name} berjaya disimpan dalam Supabase.`
+    : `${name} berjaya ditambah dalam menu demo.`;
   location.hash = '#menu';
 }
 
@@ -540,8 +674,17 @@ nav.querySelectorAll('a').forEach((link) => {
   link.addEventListener('click', () => nav.classList.remove('open'));
 });
 
-renderTabs();
-renderMenu();
-renderDeals();
-renderCart();
-renderAdminPanel();
+async function initializeApp() {
+  if (supabaseClient) {
+    formNote.textContent = 'Database Supabase aktif. Menu akan disimpan dalam cloud.';
+  }
+
+  foods = await loadFoods();
+  renderTabs();
+  renderMenu();
+  renderDeals();
+  renderCart();
+  renderAdminPanel();
+}
+
+initializeApp();
