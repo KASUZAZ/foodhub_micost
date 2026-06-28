@@ -544,9 +544,66 @@ function renderCart() {
   checkoutLink.href = `https://wa.me/${targetPhone}?text=${message}`;
 }
 
+const imageFileExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif'];
+
+function getRawFileExtension(file) {
+  return String(file?.name || '').split('.').pop().toLowerCase();
+}
+
+function normalizeImageExtension(extension) {
+  if (extension === 'jpeg') return 'jpg';
+  return imageFileExtensions.includes(extension) ? extension : '';
+}
+
+function getImageExtension(file) {
+  return normalizeImageExtension(getRawFileExtension(file)) || 'jpg';
+}
+
+function getImageContentType(file) {
+  const type = String(file?.type || '').toLowerCase();
+  if (type.startsWith('image/')) return type;
+  const extension = getImageExtension(file);
+  if (extension === 'jpg') return 'image/jpeg';
+  return `image/${extension}`;
+}
+
+function isImageFile(file) {
+  if (!file || !file.size) return false;
+  const type = String(file.type || '').toLowerCase();
+  return type.startsWith('image/') || Boolean(normalizeImageExtension(getRawFileExtension(file)));
+}
+
+function resizeImageBlob(file) {
+  return new Promise((resolve) => {
+    if (!isImageFile(file)) {
+      resolve(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const maxSize = 900;
+        const ratio = Math.min(maxSize / image.width, maxSize / image.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(image.width * ratio);
+        canvas.height = Math.round(image.height * ratio);
+        const context = canvas.getContext('2d');
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', .82);
+      };
+      image.onerror = () => resolve(null);
+      image.src = reader.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
 function resizeImage(file) {
   return new Promise((resolve) => {
-    if (!file || !file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       resolve('');
       return;
     }
@@ -573,15 +630,18 @@ function resizeImage(file) {
 }
 
 async function getUploadedFoodImage(file) {
-  if (!file || !file.type.startsWith('image/')) return '';
+  if (!isImageFile(file)) return '';
   if (!supabaseClient) return resizeImage(file);
 
-  const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const resizedBlob = await resizeImageBlob(file);
+  const uploadFile = resizedBlob || file;
+  const extension = resizedBlob ? 'jpg' : getImageExtension(file);
   const path = `foods/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
   const { error } = await supabaseClient.storage
     .from(supabaseStorageBucket)
-    .upload(path, file, {
+    .upload(path, uploadFile, {
       cacheControl: '3600',
+      contentType: resizedBlob ? 'image/jpeg' : getImageContentType(file),
       upsert: false
     });
 
@@ -621,7 +681,15 @@ async function addSellerFood(event) {
       ? 'Sedang upload gambar dan simpan menu ke Supabase...'
       : 'Sedang simpan menu dalam browser...';
 
-    const uploadedImage = await getUploadedFoodImage(form.get('image'));
+    const imageFile = form.get('image');
+    const uploadedImage = await getUploadedFoodImage(imageFile);
+
+    if (imageFile?.size && !uploadedImage) {
+      formNote.textContent = isImageFile(imageFile)
+        ? 'Gambar gagal dimuat naik. Cuba pilih gambar JPG, PNG atau WebP yang lebih kecil.'
+        : 'Fail yang dipilih bukan gambar yang disokong. Guna JPG, PNG atau WebP.';
+      return;
+    }
 
     const newFood = {
       id: `seller-${Date.now()}`,
