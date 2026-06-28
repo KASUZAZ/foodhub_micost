@@ -14,25 +14,28 @@ create table if not exists public.foods (
 
 alter table public.foods enable row level security;
 
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.foods to anon, authenticated;
+
 drop policy if exists "Public can read visible foods" on public.foods;
 create policy "Public can read visible foods"
 on public.foods
 for select
-to anon
-using (deleted = false);
+to anon, authenticated
+using (true);
 
 drop policy if exists "Public can add seller foods" on public.foods;
 create policy "Public can add seller foods"
 on public.foods
 for insert
-to anon
+to anon, authenticated
 with check (deleted = false);
 
 drop policy if exists "Public can update food status" on public.foods;
 create policy "Public can update food status"
 on public.foods
 for update
-to anon
+to anon, authenticated
 using (true)
 with check (true);
 
@@ -56,12 +59,12 @@ drop policy if exists "Public can upload food images" on storage.objects;
 create policy "Public can upload food images"
 on storage.objects
 for insert
-to anon
+to anon, authenticated
 with check (bucket_id = 'food-images');
 
 drop policy if exists "Public can read food images" on storage.objects;
 create policy "Public can read food images"
 on storage.objects
 for select
-to anon
+to anon, authenticated
 using (bucket_id = 'food-images');

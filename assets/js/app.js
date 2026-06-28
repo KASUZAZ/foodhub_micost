@@ -600,54 +600,79 @@ async function getUploadedFoodImage(file) {
 async function addSellerFood(event) {
   event.preventDefault();
   const formElement = event.currentTarget;
-  const form = new FormData(formElement);
-  const name = form.get('name').trim();
-  const category = form.get('category');
-  const price = Number(form.get('price'));
-  const sellerPhone = whatsappNumber(form.get('sellerPhone'));
-  const description = form.get('description').trim() || 'Menu baru daripada penjual MICOST.';
-  const uploadedImage = await getUploadedFoodImage(form.get('image'));
+  const submitButton = formElement.querySelector('button[type="submit"]');
+  const originalButtonText = submitButton?.textContent || 'Add Food';
 
-  const newFood = {
-    id: `seller-${Date.now()}`,
-    name,
-    category,
-    price,
-    description,
-    image: uploadedImage || 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80',
-    badge: 'SELLER',
-    sellerPhone,
-    status: 'available',
-    deleted: false
-  };
-
-  if (supabaseClient) {
-    const { error } = await supabaseClient
-      .from(supabaseTable)
-      .insert(foodToDatabase(newFood));
-
-    if (error) {
-      formNote.textContent = 'Menu gagal disimpan ke Supabase. Sila semak table/policy.';
-      console.error(error);
-      return;
-    }
-  } else {
-    const saved = JSON.parse(localStorage.getItem('foodhub_foods') || '[]');
-    saved.unshift(newFood);
-    localStorage.setItem('foodhub_foods', JSON.stringify(saved));
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Saving...';
   }
 
-  foods = await loadFoods();
-  selectedCategory = category;
-  visibleLimit = 8;
-  renderTabs();
-  renderMenu();
-  renderAdminPanel();
-  formElement.reset();
-  formNote.textContent = supabaseClient
-    ? `${name} berjaya disimpan dalam Supabase.`
-    : `${name} berjaya ditambah dalam menu demo.`;
-  location.hash = '#menu';
+  const form = new FormData(formElement);
+
+  try {
+    const name = String(form.get('name') || '').trim();
+    const category = String(form.get('category') || '').trim();
+    const price = Number(form.get('price'));
+    const sellerPhone = whatsappNumber(form.get('sellerPhone'));
+    const description = String(form.get('description') || '').trim() || 'Menu baru daripada penjual MICOST.';
+
+    formNote.textContent = supabaseClient
+      ? 'Sedang upload gambar dan simpan menu ke Supabase...'
+      : 'Sedang simpan menu dalam browser...';
+
+    const uploadedImage = await getUploadedFoodImage(form.get('image'));
+
+    const newFood = {
+      id: `seller-${Date.now()}`,
+      name,
+      category,
+      price,
+      description,
+      image: uploadedImage || 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80',
+      badge: 'SELLER',
+      sellerPhone,
+      status: 'available',
+      deleted: false
+    };
+
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from(supabaseTable)
+        .insert(foodToDatabase(newFood));
+
+      if (error) {
+        const detail = error.message || error.details || 'Unknown Supabase error';
+        formNote.textContent = `Menu gagal disimpan ke Supabase: ${detail}`;
+        console.error(error);
+        return;
+      }
+    } else {
+      const saved = JSON.parse(localStorage.getItem('foodhub_foods') || '[]');
+      saved.unshift(newFood);
+      localStorage.setItem('foodhub_foods', JSON.stringify(saved));
+    }
+
+    foods = [
+      newFood,
+      ...(await loadFoods()).filter((food) => food.id !== newFood.id)
+    ];
+    selectedCategory = category;
+    visibleLimit = 8;
+    renderTabs();
+    renderMenu();
+    renderAdminPanel();
+    formElement.reset();
+    formNote.textContent = supabaseClient
+      ? `${name} berjaya disimpan dalam Supabase dan terus keluar di menu.`
+      : `${name} berjaya ditambah dalam menu demo.`;
+    location.hash = '#menu';
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = originalButtonText;
+    }
+  }
 }
 
 searchInput.addEventListener('input', () => {

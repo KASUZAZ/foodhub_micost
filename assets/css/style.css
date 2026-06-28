@@ -169,6 +169,12 @@ textarea {
   transform: translateY(-1px);
 }
 
+.btn:disabled {
+  cursor: wait;
+  filter: grayscale(.2) brightness(.92);
+  transform: none;
+}
+
 .btn.light {
   background: #fff;
   color: var(--orange-dark);
